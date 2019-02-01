@@ -213,7 +213,8 @@ class ContractsFixture:
         if path.isfile('./allFiredEvents'):
             remove_file('./allFiredEvents')
         self.relativeContractsPath = '../source/contracts'
-        self.relativeTestContractsPath = 'solidity_test_helpers'
+        # self.relativeTestContractsPath = 'solidity_test_helpers'
+        self.relativeTestContractsPath = './mock_templates/temp_mock_contracts'
         self.externalContractsPath = '../source/contracts/external'
         self.coverageMode = pytest.config.option.cover
         self.subFork = pytest.config.option.subFork

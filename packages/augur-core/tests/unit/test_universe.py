@@ -3,7 +3,14 @@ from ethereum.tools.tester import TransactionFailed
 from utils import longToHexString, stringToBytes, twentyZeros, thirtyTwoZeros, bytesToHexString
 from pytest import fixture, raises, mark
 
-pytestmark = mark.skip(reason="Mock Tests off")
+# pytestmark = mark.skip(reason="Mock Tests off")
+
+def test_robert_deleteme():
+    from mock_templates import compile_solidity
+    compiler_output = compile_solidity('^0.4.24', '../../source/contracts/reporting/Universe.sol')
+
+    assert False
+
 
 def test_universe_creation(localFixture, mockReputationToken, mockReputationTokenFactory, mockUniverse, mockUniverseFactory, mockAugur):
     mockReputationTokenFactory.setCreateReputationTokenValue(mockReputationToken.address)

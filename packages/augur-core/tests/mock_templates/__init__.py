@@ -1,4 +1,4 @@
-from os import path, mkdir
+from os import path, makedirs, walk
 from textwrap import dedent
 
 from solc import compile_standard
@@ -32,7 +32,7 @@ def compile_solidity(solidity_version, source_filepath):
     mock_sources = generate_mock_contracts(solidity_version, contracts)
     test_contracts_path = resolve_relative_path('./temp_mock_contracts')
     if not path.exists(test_contracts_path):
-        mkdir(test_contracts_path)
+        makedirs(test_contracts_path)
     for source in mock_sources:
         write_contract(test_contracts_path, source)
 
@@ -48,16 +48,9 @@ def compile_solidity(solidity_version, source_filepath):
 
 def generate_mock_contracts(solidity_version, contracts):
     sources = []
-    for filename, body in contracts.items():
-        contract_name = body.keys()[0]
-        contract = body[contract_name]
-
+    for contract_name, abi in contracts.items():
         # fix contract name
-        if contract_name[0] == "I":
-            contract_name = contract_name[1:]
         contract_name = 'Mock{}'.format(contract_name)
-
-        abi = contract['abi']
 
         if len(abi) == 0:
             continue  # no events or public functions to mock
@@ -182,7 +175,6 @@ def make_function(function_name, inputs, outputs, state_mutability):
         variables.append('{vartype} private {name};'.format(name=v['name'], vartype=v['type']))
 
     return variables, functions
-
 
 
 def compile_contract(source_filepath, outputs, contracts_path, test_contracts_path):

@@ -11,13 +11,14 @@ from ethereum import vm
 import ethereum
 from io import open as io_open
 from json import dump as json_dump, load as json_load, dumps as json_dumps
-from os import path, walk, makedirs, listdir, remove as remove_file
+from os import path, walk, makedirs, remove as remove_file
 import pytest
 from re import findall
 from solc import compile_standard
 from utils import bytesToHexString, bytesToLong, longToHexString, stringToBytes, twentyZeros, thirtyTwoZeros
 from copy import deepcopy
 from reporting_utils import proceedToFork, finalizeFork
+from mock_templates import generate_mock_contracts, write_contract
 
 # Make TXs free.
 ethereum.opcodes.GCONTRACTBYTE = 0
@@ -97,6 +98,55 @@ class ContractsFixture:
             signature = json_load(file)
         return(signature)
 
+    def extract_compiled_code(self, relative_file_path):
+        filename = path.basename(relative_file_path)
+        name, extension = path.splitext(filename)
+        if name in ContractsFixture.compiledCode:
+            return ContractsFixture.compiledCode[name]
+        if extension != '.sol':
+            raise
+
+        compiledOutputPath = self.recompile(name, relative_file_path)
+        return self.read_bytecode(name, compiledOutputPath)
+
+    def recompile(self, name, relative_file_path):
+        dependencySet = set()
+        self.getAllDependencies(relative_file_path, dependencySet)
+
+        ContractsFixture.ensureCacheDirectoryExists()
+        compiledOutputPath = path.join(COMPILATION_CACHE, name)
+        lastCompilationTime = path.getmtime(compiledOutputPath) if path.isfile(
+            compiledOutputPath) else 0
+
+        needsRecompile = False
+        for dependencyPath in dependencySet:
+            if (path.getmtime(dependencyPath) > lastCompilationTime):
+                needsRecompile = True
+                break
+
+        if (needsRecompile):
+            print('compiling {}...'.format(name))
+            compiler_output = self.compileSolidity(relative_file_path)
+            with io_open(compiledOutputPath, mode='wb') as file:
+                file.write(compiler_output['evm']['bytecode']['object'])
+
+        return compiledOutputPath
+
+    def read_bytecode(self, name, compiled_output_path):
+        with io_open(compiled_output_path, mode='rb') as file:
+            compiledCode = file.read()
+            contractSize = len(compiledCode)
+            if (contractSize > CONTRACT_SIZE_LIMIT):
+                print('{}Contract {} is OVER the size limit by {} bytes{}'.format(
+                    bcolors.FAIL, name, contractSize - CONTRACT_SIZE_LIMIT, bcolors.ENDC
+                ))
+            elif (contractSize > CONTRACT_SIZE_WARN_LEVEL):
+                print('{}Contract {} is under size limit by only {} bytes{}'.format(
+                    bcolors.WARN, name, CONTRACT_SIZE_LIMIT - contractSize, bcolors.ENDC
+                ))
+            ContractsFixture.compiledCode[name] = compiledCode
+            return compiledCode
+
     def getCompiledCode(self, relativeFilePath):
         filename = path.basename(relativeFilePath)
         name = path.splitext(filename)[0]
@@ -140,7 +190,6 @@ class ContractsFixture:
         absoluteFilePath = resolveRelativePath(relativeFilePath)
         filename = path.basename(relativeFilePath)
         contractName = path.splitext(filename)[0]
-        print absoluteFilePath
         compilerParameter = {
             'language': 'Solidity',
             'sources': {
@@ -213,8 +262,8 @@ class ContractsFixture:
         if path.isfile('./allFiredEvents'):
             remove_file('./allFiredEvents')
         self.relativeContractsPath = '../source/contracts'
-        # self.relativeTestContractsPath = 'solidity_test_helpers'
-        self.relativeTestContractsPath = './mock_templates/temp_mock_contracts'
+        self.relativeTestContractsPath = 'solidity_test_helpers'
+        # self.relativeTestContractsPath = 'mock_templates/temp_mock_contracts'
         self.externalContractsPath = '../source/contracts/external'
         self.coverageMode = pytest.config.option.cover
         self.subFork = pytest.config.option.subFork
@@ -267,6 +316,7 @@ class ContractsFixture:
         if lookupKey in self.contracts:
             return(self.contracts[lookupKey])
         compiledCode = self.getCompiledCode(resolvedPath)
+        # compiledCode = self.extract_compiled_code(resolvedPath)
         # abstract contracts have a 0-length array for bytecode
         if len(compiledCode) == 0:
             if ("libraries" in relativeFilePath or lookupKey.startswith("I") or lookupKey.startswith("Base") or lookupKey.startswith("DS")):
@@ -280,6 +330,10 @@ class ContractsFixture:
         contractTranslator = ContractTranslator(signature)
         if len(constructorArgs) > 0:
             compiledCode += contractTranslator.encode_constructor_arguments(constructorArgs)
+        print("A", relativeFilePath)
+        print(compiledCode)
+        self.chain.contract(compiledCode, language='evm')
+        print("B")
         contractAddress = bytesToHexString(self.chain.contract(compiledCode, language='evm'))
         contract = ABIContract(self.chain, contractTranslator, contractAddress)
         self.contracts[lookupKey] = contract
@@ -342,11 +396,20 @@ class ContractsFixture:
                 else:
                     self.uploadAndAddToAugur(path.join(directory, filename))
 
+    def buildMockContracts(self):
+        testContractsPath = resolveRelativePath(self.relativeTestContractsPath)
+        with open("./output/contracts/abi.json") as f:
+            abi = json_load(f)
+        mock_sources = generate_mock_contracts("0.4.24", abi)
+        if not path.exists(testContractsPath):
+            makedirs(testContractsPath)
+        for source in mock_sources:
+            write_contract(testContractsPath, source)
+
     def uploadAllMockContracts(self):
         for directory, _, filenames in walk(resolveRelativePath(self.relativeTestContractsPath)):
             for filename in filenames:
-                name = path.splitext(filename)[0]
-                extension = path.splitext(filename)[1]
+                name, extension = path.splitext(filename)
                 if extension != '.sol': continue
                 if not name.startswith('Mock'): continue
                 if 'Factory' in name:
@@ -495,6 +558,7 @@ def augurInitializedSnapshot(fixture, baseSnapshot):
 @pytest.fixture(scope="session")
 def augurInitializedWithMocksSnapshot(fixture, augurInitializedSnapshot):
     fixture.uploadAndAddToAugur("solidity_test_helpers/Constants.sol")
+    # fixture.buildMockContracts()
     fixture.uploadAllMockContracts()
     return fixture.createSnapshot()
 

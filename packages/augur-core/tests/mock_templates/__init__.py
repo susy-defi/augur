@@ -1,5 +1,6 @@
-from os import path, makedirs, walk
+from os import path
 from textwrap import dedent
+import uuid
 
 from solc import compile_standard
 
@@ -10,40 +11,6 @@ BASE_PATH = path.dirname(path.abspath(__file__))
 def resolve_relative_path(relativeFilePath):
     return path.abspath(path.join(BASE_PATH, relativeFilePath))
 COMPILATION_CACHE = resolve_relative_path('./compilation_cache')
-
-
-def compile_solidity(solidity_version, source_filepath):
-    source_filepath = resolve_relative_path(source_filepath)
-    contracts_path = resolve_relative_path('../../source/contracts')
-    real = compile_contract(
-        source_filepath,
-        ['abi'],
-        contracts_path,
-        None)
-
-    # TODO it's still generating Universe.sol (now MockUniverse.sol) so something's funky
-    # mock out this contract's dependencies but not this contract itself
-    contracts = {
-        filename: body
-        for filename,body
-        in real['contracts'].iteritems()
-        # if filename != source_filepath  # TODO figure out if this should be kept
-    }
-    mock_sources = generate_mock_contracts(solidity_version, contracts)
-    test_contracts_path = resolve_relative_path('./temp_mock_contracts')
-    if not path.exists(test_contracts_path):
-        makedirs(test_contracts_path)
-    for source in mock_sources:
-        write_contract(test_contracts_path, source)
-
-    mock = compile_contract(
-        source_filepath,
-        ['metadata', 'evm.bytecode', 'evm.sourceMap', 'abi'],
-        contracts_path,
-        test_contracts_path)
-    import json
-    print json.dumps(mock, indent=2, separators=',:')
-    return mock
 
 
 def generate_mock_contracts(solidity_version, contracts):
@@ -92,8 +59,8 @@ def build_contract_description(solidity_version, contract_name, abi):
         type_ = thing['type']
         if type_ == 'constructor':
             inputs = thing['inputs']
-            state_mutability = thing['stateMutability']
-            payable = thing['payable']  # TODO is this useful when we know stateMutability?
+            state_mutability = thing['stateMutability']  # TODO can be public or internal
+            payable = thing['payable']  # TODO constructor can be payable
             constructor = make_constructor(inputs)
             code['functions'].append(constructor)
         elif type_ == 'function':
@@ -101,8 +68,8 @@ def build_contract_description(solidity_version, contract_name, abi):
             inputs = thing['inputs']
             outputs = thing['outputs']
             state_mutability = thing['stateMutability']
-            constant = thing['constant']
-            payable = thing['payable']  # TODO is this useful when we know stateMutability?
+            constant = thing['constant']  # TODO how does this relate to stateMutability?
+            payable = thing['payable']  # TODO how does this relate to stateMutability?
             new_variables, new_functions = make_function(name, inputs, outputs, state_mutability)
             code['variables'].extend(new_variables)
             code['functions'].extend(new_functions)
@@ -136,9 +103,10 @@ def make_constructor(inputs):
 
 def make_function(function_name, inputs, outputs, state_mutability):
     var_descriptions = [
-        {'name': 'mock_{}_{}'.format(
+        {'name': 'mock_{}_{}_{}'.format(
             function_name,
             o['name'] or i,
+            str(uuid.uuid4()).replace('-', '_')
         ),
          'type': o['type']}
         for i, o in enumerate(outputs)
@@ -150,6 +118,7 @@ def make_function(function_name, inputs, outputs, state_mutability):
     returns_header = ', '.join('{} {}'.format(o['type'], o['name']) for o in outputs)
     returns = ','.join(v['name'] for v in var_descriptions)
     mutability = "" if state_mutability == "nonpayable" else state_mutability
+    mutability = "" if mutability == "pure" else mutability  # TODO handle pure fns
     functions.append(dedent("""\
         function {name}({params}) public {mutability} returns ({returns_header}) {{
             return ({returns});
@@ -207,6 +176,4 @@ def compile_contract(source_filepath, outputs, contracts_path, test_contracts_pa
             'TEST=%s/' % test_contracts_path
         )
 
-    # contract_name = path.splitext(path.basename(source_filepath))[0]
     return compile_standard(compiler_parameter, allow_paths=resolve_relative_path("../../"))
-    # return compiled['contracts'][source_filepath][contract_name]

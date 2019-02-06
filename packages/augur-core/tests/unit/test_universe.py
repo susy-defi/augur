@@ -13,7 +13,7 @@ def test_robert_deleteme():
 
 
 def test_universe_creation(localFixture, mockReputationToken, mockReputationTokenFactory, mockUniverse, mockUniverseFactory, mockAugur):
-    mockReputationTokenFactory.setCreateReputationTokenValue(mockReputationToken.address)
+    mockReputationTokenFactory.set_mock_createReputationToken_0_address_address_address(mockReputationToken.address)
 
     universe = localFixture.upload('../source/contracts/reporting/Universe.sol', 'newUniverse', constructorArgs=[localFixture.contracts['Augur'].address, mockUniverse.address, stringToBytes("5")])
 
@@ -32,8 +32,8 @@ def test_universe_fork_market(localFixture, populatedUniverse, mockUniverse, moc
 
     timestamp = localFixture.contracts["Time"].getTimestamp()
 
-    mockDisputeWindowFactory.setCreateDisputeWindowValue(mockDisputeWindow.address)
-    mockMarketFactory.setMarket(mockMarket.address)
+    mockDisputeWindowFactory.set_mock_createDisputeWindow_0_address_address_uint256 (mockDisputeWindow.address)
+    mockMarketFactory.set_mock_createMarket__market_address_address_uint256_uint256_address_address_uint256_uint256(mockMarket.address)
     endTime = localFixture.contracts["Time"].getTimestamp() + 30 * 24 * 60 * 60 # 30 days
 
     with raises(TransactionFailed, message="forking market has to be in universe"):
@@ -220,7 +220,7 @@ def localSnapshot(fixture, augurInitializedWithMocksSnapshot):
 
     mockReputationToken = fixture.contracts['MockReputationToken']
     mockUniverse = fixture.contracts['MockUniverse']
-    mockReputationTokenFactory.setCreateReputationTokenValue(mockReputationToken.address)
+    mockReputationTokenFactory.set_mock_createReputationToken_0_address_address_address(mockReputationToken.address)
 
     universe = fixture.upload('../source/contracts/reporting/Universe.sol', 'universe', constructorArgs=[fixture.contracts['Augur'].address, mockUniverse.address, stringToBytes("5")])
     fixture.contracts['populatedUniverse'] = universe

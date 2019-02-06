@@ -380,13 +380,18 @@ class ContractsFixture:
                 if name == 'Orders': continue # In testing we use the TestOrders version which lets us call protected methods
                 if name == 'Time': continue # In testing and development we swap the Time library for a ControlledTime version which lets us manage block timestamp
                 if name == 'ReputationTokenFactory': continue # In testing and development we use the TestNetReputationTokenFactory which lets us faucet
+                if name == 'MarketFactory': continue # tests use mock
+                if name == 'ReputationTokenFactory': continue # tests use mock
+                if name == 'DisputeWindowFactory': continue # tests use mock
+                if name == 'UniverseFactory': continue # tests use mock
                 onlySignatures = ["ReputationToken", "TestNetReputationToken", "Universe"]
                 if name in onlySignatures:
                     self.generateAndStoreSignature(path.join(directory, filename))
                 elif name == "TimeControlled":
                     self.uploadAndAddToAugur(path.join(directory, filename), lookupKey = "Time", signatureKey = "TimeControlled")
-                elif name == "TestNetReputationTokenFactory":
-                    self.uploadAndAddToAugur(path.join(directory, filename), lookupKey = "ReputationTokenFactory", signatureKey = "TestNetReputationTokenFactory")
+                # TODO wwhat is this for? it breaks the test_universe tests
+                # elif name == "TestNetReputationTokenFactory":
+                #     self.uploadAndAddToAugur(path.join(directory, filename), lookupKey = "ReputationTokenFactory", signatureKey = "TestNetReputationTokenFactory")
                 elif name == "TestOrders":
                     self.uploadAndAddToAugur(path.join(directory, filename), lookupKey = "Orders", signatureKey = "TestOrders")
                 else:

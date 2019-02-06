@@ -1,6 +1,5 @@
 from os import path
 from textwrap import dedent
-import uuid
 
 from solc import compile_standard
 
@@ -105,11 +104,11 @@ def make_function(function_name, inputs, outputs, state_mutability):
     var_descriptions = [
         {'name': 'mock_{}_{}_{}'.format(
             function_name,
-            o['name'] or i,
-            str(uuid.uuid4()).replace('-', '_')
+            o['name'] or index,
+            '_'.join([t['type'] for t in inputs]).replace('[', '_').replace(']', '_')
         ),
          'type': o['type']}
-        for i, o in enumerate(outputs)
+        for index, o in enumerate(outputs)
     ]
 
     functions = []

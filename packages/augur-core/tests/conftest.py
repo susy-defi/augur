@@ -262,8 +262,8 @@ class ContractsFixture:
         if path.isfile('./allFiredEvents'):
             remove_file('./allFiredEvents')
         self.relativeContractsPath = '../source/contracts'
-        self.relativeTestContractsPath = 'solidity_test_helpers'
-        # self.relativeTestContractsPath = 'mock_templates/temp_mock_contracts'
+        # self.relativeTestContractsPath = 'solidity_test_helpers'
+        self.relativeTestContractsPath = 'mock_templates/temp_mock_contracts'
         self.externalContractsPath = '../source/contracts/external'
         self.coverageMode = pytest.config.option.cover
         self.subFork = pytest.config.option.subFork
@@ -330,10 +330,6 @@ class ContractsFixture:
         contractTranslator = ContractTranslator(signature)
         if len(constructorArgs) > 0:
             compiledCode += contractTranslator.encode_constructor_arguments(constructorArgs)
-        print("A", relativeFilePath)
-        print(compiledCode)
-        self.chain.contract(compiledCode, language='evm')
-        print("B")
         contractAddress = bytesToHexString(self.chain.contract(compiledCode, language='evm'))
         contract = ABIContract(self.chain, contractTranslator, contractAddress)
         self.contracts[lookupKey] = contract
@@ -558,7 +554,7 @@ def augurInitializedSnapshot(fixture, baseSnapshot):
 @pytest.fixture(scope="session")
 def augurInitializedWithMocksSnapshot(fixture, augurInitializedSnapshot):
     fixture.uploadAndAddToAugur("solidity_test_helpers/Constants.sol")
-    # fixture.buildMockContracts()
+    fixture.buildMockContracts()
     fixture.uploadAllMockContracts()
     return fixture.createSnapshot()
 

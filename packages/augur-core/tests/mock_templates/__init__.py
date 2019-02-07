@@ -12,6 +12,18 @@ def resolve_relative_path(relativeFilePath):
 COMPILATION_CACHE = resolve_relative_path('./compilation_cache')
 
 
+def add_methods(contracts):
+    contracts['MockMarket']['functions']['callForkOnUniverse'] = dedent("""\
+    function callForkOnUniverse(IUniverse _universe) public returns(bool) {
+        return _universe.fork();
+    }
+    """)
+
+    contracts['MockMarket']['imports'].append("import 'reporting/IUniverse.sol';")
+
+    return contracts
+
+
 def generate_mock_contracts(solidity_version, contracts):
     return {
         'Mock{}'.format(name): build_contract_description(solidity_version, 'Mock{}'.format(name), abi)
@@ -21,30 +33,13 @@ def generate_mock_contracts(solidity_version, contracts):
     }
 
 
-def write_contract(test_dir, contract_description):
-    with open('{}/{}.sol'.format(test_dir, contract_description['name']), 'w') as f:
-        f.write(render_contract(contract_description))
-
-
-def render_contract(description):
-    source = '{}\n'.format(description['version'])
-    source += '\n'
-    source += "contract {name} {{\n".format(name=description['name'])
-    source += '\n'
-    source += '\n'.join(description['variables'])
-    source += '\n\n'
-    source += '\n'.join(description['functions'])
-    source += '}'
-    return source
-
-
 def build_contract_description(solidity_version, contract_name, abi):
     code = {
         'name': contract_name,
         'version': make_version(solidity_version),
         'imports': [],
         'variables': [],
-        'functions': [],
+        'functions': {},
         'events': []
     }
 
@@ -56,7 +51,7 @@ def build_contract_description(solidity_version, contract_name, abi):
             state_mutability = thing['stateMutability']  # TODO can be public or internal
             payable = thing['payable']  # TODO constructor can be payable
             constructor = make_constructor(inputs)
-            code['functions'].append(constructor)
+            code['functions'][''] = constructor
         elif type_ == 'function':
             name = thing['name']
             inputs = thing['inputs']
@@ -66,7 +61,7 @@ def build_contract_description(solidity_version, contract_name, abi):
             payable = thing['payable']  # TODO how does this relate to stateMutability?
             new_variables, new_functions = make_function(name, inputs, outputs, state_mutability)
             code['variables'].extend(new_variables)
-            code['functions'].extend(new_functions)
+            code['functions'].update(new_functions)
         elif type_ == 'event':
             name = thing['name']
             inputs = thing['inputs']
@@ -106,14 +101,14 @@ def make_function(function_name, inputs, outputs, state_mutability):
         for index, o in enumerate(outputs)
     ]
 
-    functions = []
+    functions = {}
 
     params = ', '.join('{} {}'.format(i['type'], i['name']) for i in inputs)
     returns_header = ', '.join('{} {}'.format(o['type'], o['name']) for o in outputs)
     returns = ','.join(v['name'] for v in var_descriptions)
     mutability = "" if state_mutability == "nonpayable" else state_mutability
     mutability = "" if mutability == "pure" else mutability  # TODO handle pure fns
-    functions.append(dedent("""\
+    functions[function_name] = (dedent("""\
         function {name}({params}) public {mutability} returns ({returns_header}) {{
             return ({returns});
         }}
@@ -127,17 +122,37 @@ def make_function(function_name, inputs, outputs, state_mutability):
 
     variables = []
     for v in var_descriptions:
-        functions.append(dedent("""\
+        functions[v['name']] = dedent("""\
             function set_{name}({vartype} thing) public {{
                 {name} = thing;
             }}
         """.format(
             name=v['name'],
             vartype=v['type']
-        )))
+        ))
         variables.append('{vartype} private {name};'.format(name=v['name'], vartype=v['type']))
 
     return variables, functions
+
+
+
+def write_contract(test_dir, contract_description):
+    with open('{}/{}.sol'.format(test_dir, contract_description['name']), 'w') as f:
+        f.write(render_contract(contract_description))
+
+
+def render_contract(description):
+    source = '{}\n'.format(description['version'])
+    source += '\n'
+    source += '\n'.join(description['imports'])
+    source += '\n'
+    source += "contract {name} {{\n".format(name=description['name'])
+    source += '\n'
+    source += '\n'.join(description['variables'])
+    source += '\n\n'
+    source += '\n'.join(description['functions'].values())
+    source += '}'
+    return source
 
 
 def compile_contract(source_filepath, outputs, contracts_path, test_contracts_path):

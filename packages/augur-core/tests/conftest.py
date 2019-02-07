@@ -18,7 +18,7 @@ from solc import compile_standard
 from utils import bytesToHexString, bytesToLong, longToHexString, stringToBytes, twentyZeros, thirtyTwoZeros
 from copy import deepcopy
 from reporting_utils import proceedToFork, finalizeFork
-from mock_templates import generate_mock_contracts, write_contract, add_methods
+from mock_templates import generate_mock_contracts, add_methods
 
 # Make TXs free.
 ethereum.opcodes.GCONTRACTBYTE = 0
@@ -406,7 +406,7 @@ class ContractsFixture:
         mock_sources = generate_mock_contracts("0.4.24", abi)
         mock_sources = add_methods(mock_sources)
         for source in mock_sources.values():
-            write_contract(testContractsPath, source)
+            source.write(testContractsPath)
 
     def uploadAllMockContracts(self):
         for directory, _, filenames in walk(resolveRelativePath(self.relativeTestContractsPath)):

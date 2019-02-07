@@ -17,9 +17,9 @@ class ContractDescription(object):
         self.name = contract_name
         self.version = solidity_version
         self.imports = set()
-        self.variables = []  # TODO ->{}
+        self.variables = {}
         self.functions = {}
-        self.events = []  # TODO->?
+        self.events = set()
 
     @classmethod
     def from_abi(cls, contract_name, solidity_version, abi):
@@ -42,14 +42,14 @@ class ContractDescription(object):
                 constant = thing['constant']  # TODO how does this relate to stateMutability?
                 payable = thing['payable']  # TODO how does this relate to stateMutability?
                 new_variables, new_functions = cls.make_function(name, inputs, outputs, state_mutability)
-                self.variables.extend(new_variables)
+                self.variables.update(new_variables)
                 self.functions.update(new_functions)
             elif type_ == 'event':
                 name = thing['name']
                 inputs = thing['inputs']
                 anonymous = thing['anonymous']  # TODO is this useful when we know 'name'?
                 event = cls.make_event(name, inputs)
-                self.events.append(event)
+                self.events.add(event)
 
             else:
                 raise ValueError('Unexpected abi type "{}" in: {}'.format(type_, abi))
@@ -104,7 +104,7 @@ class ContractDescription(object):
             returns=returns
         )))
 
-        variables = []
+        variables = {}
         for v in var_descriptions:
             functions[v['name']] = dedent("""\
                 function set_{name}({vartype} thing) public {{
@@ -114,7 +114,7 @@ class ContractDescription(object):
                 name=v['name'],
                 vartype=v['type']
             ))
-            variables.append('{vartype} private {name};'.format(name=v['name'], vartype=v['type']))
+            variables[v['name']] = '{vartype} private {name};'.format(name=v['name'], vartype=v['type'])
 
         return variables, functions
 
@@ -129,7 +129,9 @@ class ContractDescription(object):
         source += '\n'
         source += "contract {name} {{\n".format(name=self.name)
         source += '\n'
-        source += '\n'.join(self.variables)
+        source += '\n'.join(self.events)
+        source += '\n'
+        source += '\n'.join(self.variables.values())
         source += '\n\n'
         source += '\n'.join(self.functions.values())
         source += '}'

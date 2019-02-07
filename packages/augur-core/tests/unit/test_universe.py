@@ -1,15 +1,13 @@
 from ethereum.tools import tester
 from ethereum.tools.tester import TransactionFailed
+from ethereum.slogging import set_level, get_logger
 from utils import longToHexString, stringToBytes, twentyZeros, thirtyTwoZeros, bytesToHexString
 from pytest import fixture, raises, mark
 
 # pytestmark = mark.skip(reason="Mock Tests off")
 
-def test_robert_deleteme():
-    from mock_templates import compile_solidity
-    compiler_output = compile_solidity('^0.4.24', '../../source/contracts/reporting/Universe.sol')
-
-    assert False
+set_level('eth.vm.exit', 'TRACE')
+set_level('eth.vm', 'DEBUG')
 
 
 def test_universe_creation(localFixture, mockReputationToken, mockReputationTokenFactory, mockUniverse, mockUniverseFactory, mockAugur):

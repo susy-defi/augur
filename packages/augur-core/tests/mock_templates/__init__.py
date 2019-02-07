@@ -3,6 +3,8 @@ from textwrap import dedent
 
 from solc import compile_standard
 
+from specifics import add_all
+
 
 # TODO resolve relative source paths from the sources directory, not this directory
 # used to resolve relative paths
@@ -138,25 +140,13 @@ class ContractDescription(object):
         return source
 
 
-def add_methods(contracts):
-    contracts['MockMarket'].functions['callForkOnUniverse'] = dedent("""\
-    function callForkOnUniverse(IUniverse _universe) public returns(bool) {
-        return _universe.fork();
-    }
-    """)
-
-    contracts['MockMarket'].imports.add('reporting/IUniverse.sol')
-
-    return contracts
-
-
 def generate_mock_contracts(solidity_version, contracts):
-    return {
+    return add_all({
         'Mock{}'.format(name): ContractDescription.from_abi(solidity_version, 'Mock{}'.format(name), abi)
         for name, abi
         in contracts.items()
         if len(abi) != 0
-    }
+    })
 
 
 def compile_contract(source_filepath, outputs, contracts_path, test_contracts_path):

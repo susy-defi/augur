@@ -16,7 +16,7 @@ class ContractDescription(object):
     def __init__(self, contract_name, solidity_version):
         self.name = contract_name
         self.version = solidity_version
-        self.imports = []  # TODO ->set()
+        self.imports = set()
         self.variables = []  # TODO ->{}
         self.functions = {}
         self.events = []  # TODO->?
@@ -125,7 +125,7 @@ class ContractDescription(object):
     def render(self):
         source = '{}\n'.format(self.version)
         source += '\n'
-        source += '\n'.join(self.imports)
+        source += '\n'.join("import '{}';".format(imp) for imp in self.imports)
         source += '\n'
         source += "contract {name} {{\n".format(name=self.name)
         source += '\n'
@@ -143,7 +143,7 @@ def add_methods(contracts):
     }
     """)
 
-    contracts['MockMarket'].imports.append("import 'reporting/IUniverse.sol';")
+    contracts['MockMarket'].imports.add('reporting/IUniverse.sol')
 
     return contracts
 

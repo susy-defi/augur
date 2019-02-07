@@ -13,17 +13,12 @@ COMPILATION_CACHE = resolve_relative_path('./compilation_cache')
 
 
 def generate_mock_contracts(solidity_version, contracts):
-    sources = []
-    for contract_name, abi in contracts.items():
-        # fix contract name
-        contract_name = 'Mock{}'.format(contract_name)
-
-        if len(abi) == 0:
-            continue  # no events or public functions to mock
-
-        sources.append(build_contract_description(solidity_version, contract_name, abi))
-
-    return sources
+    return {
+        'Mock{}'.format(name): build_contract_description(solidity_version, 'Mock{}'.format(name), abi)
+        for name, abi
+        in contracts.items()
+        if len(abi) != 0
+    }
 
 
 def write_contract(test_dir, contract_description):

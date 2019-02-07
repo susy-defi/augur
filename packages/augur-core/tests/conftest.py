@@ -401,10 +401,10 @@ class ContractsFixture:
         testContractsPath = resolveRelativePath(self.relativeTestContractsPath)
         with open("./output/contracts/abi.json") as f:
             abi = json_load(f)
-        mock_sources = generate_mock_contracts("0.4.24", abi)
         if not path.exists(testContractsPath):
             makedirs(testContractsPath)
-        for source in mock_sources:
+        mock_sources = generate_mock_contracts("0.4.24", abi)
+        for source in mock_sources.values():
             write_contract(testContractsPath, source)
 
     def uploadAllMockContracts(self):

@@ -5,7 +5,6 @@ variables:
     CORE_IMAGE_BUILD: augurproject/augur-core:$(AUGUR_CORE_TAG)
     CORE_IMAGE_LATEST: augurproject/augur-core:latest
 
-
 trigger:
   batch: false
   branches:
@@ -134,6 +133,9 @@ jobs:
         node_10_x:
           node_version: 10.x
     steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: $(node_version)
       - script: |
           set -euo pipefail
           which node
@@ -142,7 +144,7 @@ jobs:
           yarn install --ignore-scripts --frozen-lockfile
         displayName: 'Install Dependencies'
       - script: |
-          yarn test --forceExit
+          yarn test --forceExit --detectOpenHandles
         displayName: 'Run Tests'
       - task: PublishTestResults@2
         inputs:
@@ -160,6 +162,9 @@ jobs:
         node_10_x:
           node_version: 10.x
     steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: $(node_version)
       - bash: |
           set -euo pipefail
           for f in $(git whatchanged --name-only --pretty="" origin/master..HEAD);
@@ -179,7 +184,10 @@ jobs:
         displayName: 'test augur.js'
         condition: eq(variables.AUGUR, 'true')
 
-  - job: Docker_monorepo
+  - job: Docker_publish_populated_geth_images
+    dependsOn:
+    - Build_Core_Docker
+    - Test_Augur_Core
     pool:
       vmImage: 'Ubuntu 16.04'
     steps:
@@ -188,5 +196,10 @@ jobs:
         echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin
         yarn docker:build:all
         yarn workspace augur-tools docker:push
-      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+      condition: |
+        and
+        (
+            succeeded(),
+            eq(variables['Build.SourceBranch'], 'refs/heads/master')
+        )
       displayName: 'build and push docker image'

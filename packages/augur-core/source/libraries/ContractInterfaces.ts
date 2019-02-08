@@ -5,6 +5,8 @@ export class Contract extends c.Contract<ethers.utils.BigNumber> {
 }
 export class Augur extends c.Augur<ethers.utils.BigNumber> {
 }
+export class ERC820Registry extends c.ERC820Registry<ethers.utils.BigNumber> {
+}
 export class LegacyReputationToken extends c.LegacyReputationToken<ethers.utils.BigNumber> {
 }
 export class TestNetReputationToken extends c.TestNetReputationToken<ethers.utils.BigNumber> {
@@ -24,8 +26,6 @@ export class DisputeCrowdsourcerFactory extends c.DisputeCrowdsourcerFactory<eth
 export class DisputeWindowFactory extends c.DisputeWindowFactory<ethers.utils.BigNumber> {
 }
 export class InitialReporterFactory extends c.InitialReporterFactory<ethers.utils.BigNumber> {
-}
-export class MailboxFactory extends c.MailboxFactory<ethers.utils.BigNumber> {
 }
 export class MapFactory extends c.MapFactory<ethers.utils.BigNumber> {
 }
@@ -52,8 +52,6 @@ export class DisputeCrowdsourcer extends c.DisputeCrowdsourcer<ethers.utils.BigN
 export class DisputeWindow extends c.DisputeWindow<ethers.utils.BigNumber> {
 }
 export class InitialReporter extends c.InitialReporter<ethers.utils.BigNumber> {
-}
-export class Mailbox extends c.Mailbox<ethers.utils.BigNumber> {
 }
 export class Market extends c.Market<ethers.utils.BigNumber> {
 }

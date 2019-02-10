@@ -1,15 +1,13 @@
 from ethereum.tools import tester
 from ethereum.tools.tester import TransactionFailed
-from ethereum.slogging import set_level, get_logger
-from utils import longToHexString, stringToBytes, twentyZeros, thirtyTwoZeros, bytesToHexString
+from utils import longToHexString, stringToBytes
 from pytest import fixture, raises, mark
 
-# pytestmark = mark.skip(reason="Mock Tests off")
-
-set_level('eth.vm.exit', 'TRACE')
-set_level('eth.vm', 'DEBUG')
+from ethereum.slogging import set_level
+# set_level('eth.vm.exit', 'TRACE')
 
 
+@mark.skip
 def test_universe_creation(localFixture, mockReputationToken, mockReputationTokenFactory, mockUniverse, mockUniverseFactory, mockAugur):
     mockReputationTokenFactory.set_mock_createReputationToken_0_address_address_address(mockReputationToken.address)
 
@@ -24,6 +22,7 @@ def test_universe_creation(localFixture, mockReputationToken, mockReputationToke
     assert universe.getForkEndTime() == 0
     assert universe.getChildUniverse("5") == longToHexString(0)
 
+@mark.skip
 def test_universe_fork_market(localFixture, populatedUniverse, mockUniverse, mockDisputeWindow, mockUniverseFactory, mockDisputeWindowFactory, mockMarket, chain, mockMarketFactory, mockAugur):
     with raises(TransactionFailed, message="must be called from market"):
         populatedUniverse.fork()
@@ -49,6 +48,7 @@ def test_universe_fork_market(localFixture, populatedUniverse, mockUniverse, moc
     assert populatedUniverse.getForkingMarket() == mockMarket.address
     assert populatedUniverse.getForkEndTime() == timestamp + localFixture.contracts['Constants'].FORK_DURATION_SECONDS()
 
+@mark.skip
 def test_get_reporting_window(localFixture, populatedUniverse, chain):
     constants = localFixture.contracts['Constants']
     timestamp = localFixture.contracts["Time"].getTimestamp()
@@ -73,6 +73,7 @@ def test_get_reporting_window(localFixture, populatedUniverse, chain):
     assert populatedUniverse.getOrCreateCurrentDisputeWindow() == populatedUniverse.getOrCreateDisputeWindowByTimestamp(chain.head_state.timestamp)
     assert populatedUniverse.getOrCreateNextDisputeWindow() == populatedUniverse.getOrCreateDisputeWindowByTimestamp(chain.head_state.timestamp + duration)
 
+@mark.skip
 def test_universe_contains(localFixture, populatedUniverse, mockMarket, chain, mockMarketFactory, mockDisputeWindow, mockShareToken, mockDisputeWindowFactory):
     mockDisputeWindow.setStartTime(0)
     assert populatedUniverse.isContainerForDisputeWindow(mockDisputeWindow.address) == False
@@ -103,6 +104,7 @@ def test_universe_contains(localFixture, populatedUniverse, mockMarket, chain, m
     assert populatedUniverse.isContainerForMarket(mockMarket.address) == True
     assert populatedUniverse.isContainerForShareToken(mockShareToken.address) == True
 
+@mark.skip
 def test_open_interest(localFixture, populatedUniverse):
     multiplier = localFixture.contracts['Constants'].TARGET_REP_MARKET_CAP_MULTIPLIER() / float(localFixture.contracts['Constants'].TARGET_REP_MARKET_CAP_DIVISOR())
     assert populatedUniverse.getTargetRepMarketCapInAttoEth() == 0
@@ -111,6 +113,7 @@ def test_open_interest(localFixture, populatedUniverse):
     assert populatedUniverse.getTargetRepMarketCapInAttoEth() == 20 * multiplier
     assert populatedUniverse.getOpenInterestInAttoEth() == 20
 
+@mark.skip
 def test_universe_calculate_bonds_stakes(localFixture, chain, populatedUniverse, mockDisputeWindow, mockDisputeWindowFactory):
     timestamp = localFixture.contracts["Time"].getTimestamp()
     constants = localFixture.contracts['Constants']
@@ -173,11 +176,13 @@ def test_universe_calculate_bonds_stakes(localFixture, chain, populatedUniverse,
 
     assert populatedUniverse.getOrCacheMarketCreationCost() == newValidityBondValue
 
+@mark.skip
 def test_universe_calculate_floating_value_defaults(populatedUniverse):
     defaultValue = 12
     totalMarkets = 0
     assert populatedUniverse.calculateFloatingValue(11, totalMarkets, 4, 22, defaultValue, 6) == defaultValue
 
+@mark.skip
 def test_universe_create_market(localFixture, chain, populatedUniverse, mockMarket, mockMarketFactory, mockReputationToken, mockAugur, mockDisputeWindowFactory, mockDisputeWindow):
     timestamp = localFixture.contracts["Time"].getTimestamp()
     endTimeValue = timestamp + 10

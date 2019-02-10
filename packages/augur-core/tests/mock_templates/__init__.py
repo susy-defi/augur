@@ -24,7 +24,7 @@ class ContractDescription(object):
         self.events = set()
 
     @classmethod
-    def from_abi(cls, contract_name, solidity_version, abi):
+    def from_abi(cls, solidity_version, contract_name, abi):
         self = cls(contract_name, solidity_version)
 
         for thing in abi:
@@ -57,7 +57,6 @@ class ContractDescription(object):
                 raise ValueError('Unexpected abi type "{}" in: {}'.format(type_, abi))
 
         return self
-
 
     @staticmethod
     def make_version(version):
@@ -125,8 +124,8 @@ class ContractDescription(object):
             f.write(self.render())
 
     def render(self):
-        source = '{}\n'.format(self.version)
-        source += '\n'
+        source = self.make_version(self.version)
+        source += '\n\n'
         source += '\n'.join("import '{}';".format(imp) for imp in self.imports)
         source += '\n'
         source += "contract {name} {{\n".format(name=self.name)

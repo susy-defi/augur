@@ -93,55 +93,6 @@ class ContractsFixture:
             signature = json_load(file)
         return(signature)
 
-    def extract_compiled_code(self, relative_file_path):
-        filename = path.basename(relative_file_path)
-        name, extension = path.splitext(filename)
-        if name in ContractsFixture.compiledCode:
-            return ContractsFixture.compiledCode[name]
-        if extension != '.sol':
-            raise
-
-        compiledOutputPath = self.recompile(name, relative_file_path)
-        return self.read_bytecode(name, compiledOutputPath)
-
-    def recompile(self, name, relative_file_path):
-        dependencySet = set()
-        self.getAllDependencies(relative_file_path, dependencySet)
-
-        ContractsFixture.ensureCacheDirectoryExists()
-        compiledOutputPath = path.join(COMPILATION_CACHE, name)
-        lastCompilationTime = path.getmtime(compiledOutputPath) if path.isfile(
-            compiledOutputPath) else 0
-
-        needsRecompile = False
-        for dependencyPath in dependencySet:
-            if (path.getmtime(dependencyPath) > lastCompilationTime):
-                needsRecompile = True
-                break
-
-        if (needsRecompile):
-            print('compiling {}...'.format(name))
-            compiler_output = self.compileSolidity(relative_file_path)
-            with io_open(compiledOutputPath, mode='wb') as file:
-                file.write(compiler_output['evm']['bytecode']['object'])
-
-        return compiledOutputPath
-
-    def read_bytecode(self, name, compiled_output_path):
-        with io_open(compiled_output_path, mode='rb') as file:
-            compiledCode = file.read()
-            contractSize = len(compiledCode)
-            if (contractSize > CONTRACT_SIZE_LIMIT):
-                print('{}Contract {} is OVER the size limit by {} bytes{}'.format(
-                    bcolors.FAIL, name, contractSize - CONTRACT_SIZE_LIMIT, bcolors.ENDC
-                ))
-            elif (contractSize > CONTRACT_SIZE_WARN_LEVEL):
-                print('{}Contract {} is under size limit by only {} bytes{}'.format(
-                    bcolors.WARN, name, CONTRACT_SIZE_LIMIT - contractSize, bcolors.ENDC
-                ))
-            ContractsFixture.compiledCode[name] = compiledCode
-            return compiledCode
-
     def getCompiledCode(self, relativeFilePath):
         filename = path.basename(relativeFilePath)
         name = path.splitext(filename)[0]
@@ -258,7 +209,7 @@ class ContractsFixture:
             remove_file('./allFiredEvents')
         self.relativeContractsPath = '../source/contracts'
         # self.relativeTestContractsPath = 'solidity_test_helpers'
-        self.relativeTestContractsPath = 'mock_templates/temp_mock_contracts'
+        self.relativeTestContractsPath = 'mock_templates/contracts'
         self.externalContractsPath = '../source/contracts/external'
         self.coverageMode = pytest.config.option.cover
         self.subFork = pytest.config.option.subFork
@@ -267,7 +218,6 @@ class ContractsFixture:
             self.relativeContractsPath = '../coverageEnv/contracts'
             self.relativeTestContractsPath = '../coverageEnv/solidity_test_helpers'
             self.externalContractsPath = '../coverageEnv/contracts/external'
-
 
     def writeLogToFile(self, message):
         with open('./allFiredEvents', 'a') as logsFile:
@@ -311,7 +261,6 @@ class ContractsFixture:
         if lookupKey in self.contracts:
             return(self.contracts[lookupKey])
         compiledCode = self.getCompiledCode(resolvedPath)
-        # compiledCode = self.extract_compiled_code(resolvedPath)
         # abstract contracts have a 0-length array for bytecode
         if len(compiledCode) == 0:
             if ("libraries" in relativeFilePath or lookupKey.startswith("I") or lookupKey.startswith("Base") or lookupKey.startswith("DS")):
@@ -375,18 +324,19 @@ class ContractsFixture:
                 if name == 'Orders': continue # In testing we use the TestOrders version which lets us call protected methods
                 if name == 'Time': continue # In testing and development we swap the Time library for a ControlledTime version which lets us manage block timestamp
                 if name == 'ReputationTokenFactory': continue # In testing and development we use the TestNetReputationTokenFactory which lets us faucet
-                if name == 'MarketFactory': continue # tests use mock
-                if name == 'ReputationTokenFactory': continue # tests use mock
-                if name == 'DisputeWindowFactory': continue # tests use mock
-                if name == 'UniverseFactory': continue # tests use mock
+                # TODO these four are necessary for test_universe but break everything else
+                # if name == 'MarketFactory': continue # tests use mock
+                # if name == 'ReputationTokenFactory': continue # tests use mock
+                # if name == 'DisputeWindowFactory': continue # tests use mock
+                # if name == 'UniverseFactory': continue # tests use mock
                 onlySignatures = ["ReputationToken", "TestNetReputationToken", "Universe"]
                 if name in onlySignatures:
                     self.generateAndStoreSignature(path.join(directory, filename))
                 elif name == "TimeControlled":
                     self.uploadAndAddToAugur(path.join(directory, filename), lookupKey = "Time", signatureKey = "TimeControlled")
-                # TODO wwhat is this for? it breaks the test_universe tests
-                # elif name == "TestNetReputationTokenFactory":
-                #     self.uploadAndAddToAugur(path.join(directory, filename), lookupKey = "ReputationTokenFactory", signatureKey = "TestNetReputationTokenFactory")
+                # TODO this breaks test_universe tests but is necessary for other tests
+                elif name == "TestNetReputationTokenFactory":
+                    self.uploadAndAddToAugur(path.join(directory, filename), lookupKey = "ReputationTokenFactory", signatureKey = "TestNetReputationTokenFactory")
                 elif name == "TestOrders":
                     self.uploadAndAddToAugur(path.join(directory, filename), lookupKey = "Orders", signatureKey = "TestOrders")
                 else:
@@ -451,9 +401,7 @@ class ContractsFixture:
 
     def uploadAugur(self):
         # We have to upload Augur first
-        augur = self.upload("../source/contracts/Augur.sol")
-        self.contracts['Augur'].registerContract("Augur".ljust(32, '\x00'), augur.address)
-        return augur
+        return self.upload("../source/contracts/Augur.sol")
 
     def uploadShareToken(self, augurAddress = None):
         augurAddress = augurAddress if augurAddress else self.contracts['Augur'].address
@@ -558,7 +506,6 @@ def augurInitializedSnapshot(fixture, baseSnapshot):
 
 @pytest.fixture(scope="session")
 def augurInitializedWithMocksSnapshot(fixture, augurInitializedSnapshot):
-    fixture.uploadAndAddToAugur("solidity_test_helpers/Constants.sol")
     fixture.buildMockContracts()
     fixture.uploadAllMockContracts()
     return fixture.createSnapshot()

@@ -2,7 +2,7 @@ import { EthersProviderBlockStreamAdapter, ExtendedLog } from "blockstream-adapt
 import { Block, BlockAndLogStreamer, Log as BlockStreamLog } from "ethereumjs-blockstream";
 import { Filter } from "ethereumjs-blockstream/output/source/models/filters";
 import { EthersProvider } from "@augurproject/ethersjs-provider";
-import { Augur, Log, ParsedLog, Provider } from "@augurproject/api";
+import { Augur, FullLog, ParsedLog, Provider } from "@augurproject/api";
 import { EventLogDBRouter } from "./EventLogDBRouter";
 
 export interface BlockAndLogStreamerInterface<TBlock extends Block, TLog extends BlockStreamLog> {
@@ -26,7 +26,7 @@ export interface BlockAndLogStreamerListenerDependencies {
 
 type GenericLogCallbackType<T, P> = (blockIdentifier: T, logs: P[]) => void;
 
-export type BlockstreamLogCallbackType = GenericLogCallbackType<string, Log>
+export type BlockstreamLogCallbackType = GenericLogCallbackType<string, FullLog>
 export type LogCallbackType = GenericLogCallbackType<number, ParsedLog>
 
 export interface IBlockAndLogStreamerListener {

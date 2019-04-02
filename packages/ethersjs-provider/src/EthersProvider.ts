@@ -1,5 +1,5 @@
 import {NetworkId} from "@augurproject/artifacts";
-import {Filter, Log, LogValues} from "@augurproject/api";
+import {Filter, LogValues, FullLog} from "@augurproject/api";
 import {Transaction} from "contract-dependencies";
 import {EthersProvider as EProvider} from "contract-dependencies-ethers";
 import {ethers} from "ethers";
@@ -79,7 +79,7 @@ export class EthersProvider extends ethers.providers.BaseProvider implements EPr
     return contractInterface.events[eventName].topic;
   }
 
-  public parseLogValues(contractName: string, log: Log): LogValues {
+  public parseLogValues(contractName: string, log: FullLog): LogValues {
     const contractInterface = this.contractMapping[contractName];
     if (!contractInterface) {
       throw new Error(`Contract name ${contractName} not found in EthersJSProvider. Call 'storeAbiData' first with this name and the contract abi`);
@@ -97,8 +97,9 @@ export class EthersProvider extends ethers.providers.BaseProvider implements EPr
     return logValues;
   }
 
-  public async getLogs(filter: Filter): Promise<Array<Log>> {
-    return super.getLogs(filter);
+  public async getLogs(filter: Filter): Promise<Array<FullLog>> {
+    // NOTE: assuming that super.getLogs returns full logs instead of partial logsß
+    return super.getLogs(filter) as Promise<Array<FullLog>>;
   }
 
   public async perform(message: any, params: any): Promise<any> {

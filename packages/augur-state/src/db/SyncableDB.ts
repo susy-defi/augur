@@ -1,5 +1,5 @@
 import { AbstractDB, BaseDocument } from "./AbstractDB";
-import { Augur, Log, ParsedLog } from "@augurproject/api";
+import { Augur, FullLog, ParsedLog } from "@augurproject/api";
 import { DB } from "./DB";
 import { SyncStatus } from "./SyncStatus";
 import * as _ from "lodash";
@@ -11,7 +11,6 @@ export class SyncableDB<TBigNumber> extends AbstractDB {
   protected eventName: string;
   protected contractName: string; // TODO Remove if unused
   private syncStatus: SyncStatus;
-
   constructor(dbController: DB<TBigNumber>, networkId: number, eventName: string, dbName: string = dbController.getDatabaseName(eventName)) {
     super(networkId, dbName, dbController.pouchDBFactory);
     this.eventName = eventName;
@@ -90,7 +89,7 @@ export class SyncableDB<TBigNumber> extends AbstractDB {
     return await augur.events.getLogs(this.eventName, startBlock, endBlock);
   }
 
-  protected processLog(log: Log): BaseDocument {
+  protected processLog(log: FullLog): BaseDocument {
     if (!log.blockNumber) throw new Error(`Corrupt log: ${JSON.stringify(log)}`);
     const _id = `${log.blockNumber.toPrecision(21)}${log.logIndex}`;
     return Object.assign(

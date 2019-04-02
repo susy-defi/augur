@@ -1,15 +1,10 @@
-export interface Log {
-  blockNumber?: number;
-  blockHash?: string;
-  transactionIndex?: number;
-  removed?: boolean;
-  transactionLogIndex?: number;
-  address: string;
-  data: string;
-  topics: Array<string>;
-  transactionHash?: string;
-  logIndex?: number;
-}
+import { Log } from "ethers/providers";
+
+type AllRequired<T> = {
+  [P in keyof T]-?: T[P];
+};
+
+export type FullLog = AllRequired<Log>;
 
 export interface LogValues {
   [paramName: string]: any;

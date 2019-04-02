@@ -1,4 +1,4 @@
-import { Provider, Log, ParsedLog } from "..";
+import { Provider, FullLog, ParsedLog } from "..";
 import { abi } from "@augurproject/artifacts";
 import { Abi } from "ethereum";
 
@@ -17,7 +17,7 @@ export class Events {
         if (additionalTopics) {
             topics = topics.concat(additionalTopics);
         }
-        const logs = await this.provider.getLogs({fromBlock, toBlock, topics, address: this.augurAddress});
+        const logs = await this.provider.getLogs({fromBlock, toBlock, topics, address: this.augurAddress}) as Array<FullLog>;
         return this.parseLogs(logs);
     }
 
@@ -25,7 +25,7 @@ export class Events {
         return [this.provider.getEventTopic("Augur", eventName)];
     }
 
-    public parseLogs(logs: Array<Log>): Array<ParsedLog> {
+    public parseLogs(logs: Array<FullLog>): Array<ParsedLog> {
         return logs.map((log) => {
             const logValues = this.provider.parseLogValues("Augur", log);
             return Object.assign(

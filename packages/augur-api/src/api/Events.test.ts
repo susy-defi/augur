@@ -1,6 +1,6 @@
 import { Events } from "./Events";
 import { NetworkId } from "@augurproject/artifacts";
-import { Filter, Log, LogValues, Provider } from "..";
+import { Filter, FullLog, LogValues, Provider } from "..";
 import { Abi } from "ethereum";
 
 function makeProviderMock(opts?: any): Provider {
@@ -12,16 +12,16 @@ function makeProviderMock(opts?: any): Provider {
 
   return {
     getNetworkId: (): Promise<NetworkId> => Promise.resolve(networkId),
-    getLogs: (filter: Filter): Promise<Array<Log>> => Promise.resolve(logs),
+    getLogs: (filter: Filter): Promise<Array<FullLog>> => Promise.resolve(logs),
     getBlockNumber: (): Promise<number> => Promise.resolve(blockNumber),
     storeAbiData: (abi: Abi, contractName: string): void => {},
     getEventTopic: (contractName: string, eventName: string): string => eventTopic,
-    parseLogValues: (contractName: string, log: Log): LogValues => logValues,
+    parseLogValues: (contractName: string, log: FullLog): LogValues => logValues,
   };
 }
 
 test("get logs", async () => {
-  const logs: Array<Log> = [{
+  const logs: Array<FullLog> = [{
     blockNumber: 19,
     address: "0xthere",
     data: "some data",
@@ -30,6 +30,7 @@ test("get logs", async () => {
     logIndex: 2,
     removed: false,
     transactionHash: "0x9876",
+    transactionLogIndex: 4,
     transactionIndex: 3,  // not specified in logValues
   }];
   const logValues: LogValues = {
@@ -41,7 +42,7 @@ test("get logs", async () => {
     logIndex: 22,
     removed: true,
     transactionHash: "0x7777",
-    transactionLogIndex: 4,  // not specified in log but could be
+    transactionLogIndex: 44,
     fakeValueIMadeUp: "ddr3",  // not specified in log and cannot be
   };
   const provider = makeProviderMock({ logs, logValues });
@@ -63,7 +64,7 @@ test("get logs", async () => {
       removed: false,
       transactionHash: "0x9876",
       transactionIndex: 3,
-      transactionLogIndex: undefined,  // value comes only from `log` despite `logValues` specifying it
+      transactionLogIndex: 4,
       fakeValueIMadeUp: "ddr3",  // `log` only overwrites certain predefined values, which this is not one of
     },
   ]);

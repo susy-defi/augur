@@ -1,15 +1,15 @@
-import { ExtendedLog } from "blockstream-adapters";
-import { Log, ParsedLog } from "@augurproject/api";
+import { ParsedLog, FullLog } from "@augurproject/api";
 import { LogCallbackType } from "./BlockAndLogStreamerListener";
+import { ExtendedLog } from "blockstream-adapters";
 
 export class EventLogDBRouter {
-  private logCallbacks: LogCallbackType[] = [];
+  private logCallbacks: Array<LogCallbackType> = [];
 
-  constructor(private parseLogs: (logs: Log[]) => ParsedLog[]) {
+  constructor(private parseLogs: (logs: Array<FullLog>) => Array<ParsedLog>) {
   }
 
   public filterCallbackByTopic(topic: string, callback: LogCallbackType): LogCallbackType {
-    return (blockNumber: number, logs: Log[]) => {
+    return (blockNumber: number, logs: Array<FullLog>) => {
       const filteredLogs = logs.filter((log) => log.topics.includes(topic));
       const parsedLogs = this.parseLogs(filteredLogs);
 
@@ -21,12 +21,12 @@ export class EventLogDBRouter {
     this.logCallbacks.push(this.filterCallbackByTopic(topic, callback));
   }
 
-  onLogsAdded = async (blockNumber: number, extendedLogs: ExtendedLog[]) => {
-    const logs: Log[] = extendedLogs.map((log) => ({
+  public onLogsAdded = async (blockNumber: number, extendedLogs: Array<ExtendedLog>) => {
+    const logs = extendedLogs.map((log) => ({
       ...log,
       logIndex: parseInt(log.logIndex, 10),
-      blockNumber: parseInt(log.blockNumber, 10)
-    }));
+      blockNumber: parseInt(log.blockNumber, 10),
+    })) as Array<FullLog>;
 
     const logCallbackPromises = this.logCallbacks.map((cb) => cb(blockNumber, logs));
 

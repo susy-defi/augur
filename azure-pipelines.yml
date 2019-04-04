@@ -17,12 +17,18 @@ jobs:
     pool:
       vmImage: 'Ubuntu 16.04'
     steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '3.6.5'
       - task: NodeTool@0
         inputs:
           versionSpec: '10.x'
       - bash: |
           set -euxo pipefail
           yarn
+          yarn build
+          yarn workspace @augurproject/core
+          yarn workspace @augurproject/core build
           yarn test
         displayName: 'run tests'
 

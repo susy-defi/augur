@@ -13,6 +13,20 @@ trigger:
     - azure/*
 
 jobs:
+  - job: Run_Auto_Tests
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: '10.x'
+      - bash: |
+          set -euxo pipefail
+          yarn
+          yarn test
+        displayName: 'run tests'
+
+
   - job: Augur_build_docker_image
     pool:
       vmImage: 'Ubuntu 16.04'

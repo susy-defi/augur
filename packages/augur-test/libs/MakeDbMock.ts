@@ -84,9 +84,9 @@ export function makeDbMock() {
 
   const constants = {
     chunkSize: 100000,
-      blockstreamDelay: 10,
-      networkId: 4,
-      defaultStartSyncBlockNumber: 0,
+    blockstreamDelay: 0, // zero is typically best for automated testing but is unrealistic in production
+    networkId: 4,
+    defaultStartSyncBlockNumber: 0,
   };
 
   return {

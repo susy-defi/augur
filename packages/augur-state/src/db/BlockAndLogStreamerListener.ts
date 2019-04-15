@@ -61,6 +61,7 @@ export class BlockAndLogStreamerListener implements IBlockAndLogStreamerListener
 
   public listenForEvent(eventName: string, onLogsAdded: LogCallbackType): void {
     const topics = this.deps.getEventTopics(eventName);
+    console.log("ZZZ", "AAA", "listenForEvent", eventName, JSON.stringify(topics, null, 2));
 
     this.deps.blockAndLogStreamer.addLogFilter({
       address: this.address,
@@ -79,6 +80,8 @@ export class BlockAndLogStreamerListener implements IBlockAndLogStreamerListener
   }
 
   onLogsAdded = async (blockHash: string, extendedLogs: ExtendedLog[]) => {
+    console.log("ZZZ", "AAA", "onLogsAdded", JSON.stringify(extendedLogs, null, 2));
+
     const block = await this.deps.getBlockByHash(blockHash);
 
     if (block) {
@@ -92,6 +95,7 @@ export class BlockAndLogStreamerListener implements IBlockAndLogStreamerListener
   }
 
   onNewBlock = async (block: Block) => {
+    console.log("ZZZ", "AAA", "onNewBlock", JSON.stringify(block, null, 2));
     if (block) {
       await this.deps.blockAndLogStreamer.reconcileNewBlock(block);
     }

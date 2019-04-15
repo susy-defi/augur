@@ -1,81 +1,131 @@
-import { ACCOUNTS, compileAndDeployToGanache, makeDbMock, makeTestAugur } from "../../libs";
+import {
+  ACCOUNTS,
+  compileAndDeployToGanache,
+  ContractAPI,
+  makeDbMock,
+} from "../../libs";
 import { UserSyncableDB } from "@augurproject/state/src/db/UserSyncableDB";
-import {Augur} from "@augurproject/api";
-import { stringTo32ByteHex } from "@augurproject/core/source/libraries/HelperFunctions";
-import { Contracts } from "@augurproject/api/src/api/Contracts";
 import { ContractDependenciesEthers } from "contract-dependencies-ethers";
 import {ethers} from "ethers";
 import { ContractAddresses } from "@augurproject/artifacts";
+import { GenericAugurInterfaces } from "@augurproject/core";
+import { EthersProvider } from "@augurproject/ethersjs-provider";
+import { DB } from "@augurproject/state/src/db/DB";
+import { BlockAndLogStreamerListener } from "@augurproject/state/src/db/BlockAndLogStreamerListener";
+import { EventLogDBRouter } from "@augurproject/state/src/db/EventLogDBRouter";
 
 const mock = makeDbMock();
 
-let augur: Augur<ethers.utils.BigNumber>;
 let addresses: ContractAddresses;
 let dependencies: ContractDependenciesEthers;
+let provider: EthersProvider;
 beforeAll(async () => {
-  augur = await makeTestAugur(ACCOUNTS);
   const result = await compileAndDeployToGanache(ACCOUNTS);
   addresses = result.addresses;
   dependencies = result.dependencies;
+  provider = result.provider;
 }, 120000);
 
-let contracts: Contracts<ethers.utils.BigNumber>;
+let john: ContractAPI;
+let mary: ContractAPI;
 beforeEach(async () => {
-  contracts = new Contracts(addresses, dependencies);
+  john = await ContractAPI.userWrapper(ACCOUNTS, 0, provider, addresses);
+  mary = await ContractAPI.userWrapper(ACCOUNTS, 1, provider, addresses);
+
+  // Use testnet rep token contract since it has faucet().
+  john.augur.contracts.setReputationToken("4");
+  mary.augur.contracts.setReputationToken("4");
+
   mock.cancelFail();
   await mock.wipeDB();
 });
 
 // UserSyncableDB overrides protected getLogs class, which is only called in sync.
-test.skip("sync", async () => {
-  const dbController = await mock.makeDB(augur, ACCOUNTS);
+test("sync", async () => {
+  await john.approveCentralAuthority();
+  await mary.approveCentralAuthority();
 
-  const eventName = "TokensTransferred";
-  const sender = ACCOUNTS[0].publicKey;
-  const highestAvailableBlockNumber = 0;
-  const db = new UserSyncableDB<ethers.utils.BigNumber>(dbController, mock.constants.networkId, eventName, sender, 0, 0);
-
-  // Generate logs to be synced
-  // TODO generate user-specific TokensTransferred
-  const cash = contracts.cash;
-  const universe = contracts.universe;
-  const marketCreationCost = await universe.getOrCacheMarketCreationCost_();
-  await cash.faucet(marketCreationCost, { sender });
-  await cash.approve(addresses.Augur, marketCreationCost, { sender });
-  const endTime = new ethers.utils.BigNumber(Math.round(new Date().getTime() / 1000) + 30 * 24 * 60 * 60);
-  const fee = (new ethers.utils.BigNumber(10)).pow(new ethers.utils.BigNumber(16));
-  const affiliateFeeDivisor = new ethers.utils.BigNumber(25);
-  const outcomes: Array<string> = [stringTo32ByteHex("big"), stringTo32ByteHex("small")];
-  const topic = stringTo32ByteHex("boba");
-  const description = "Will big or small boba be the most popular in 2019?";
-  const extraInfo = "";
-  await universe.createCategoricalMarket(
-    endTime,
-    fee,
-    affiliateFeeDivisor,
-    ACCOUNTS[0].publicKey,
-    outcomes,
-    topic,
-    description,
-    extraInfo,
-    { sender: ACCOUNTS[0].publicKey },
+  const blockAndLogStreamerListener = BlockAndLogStreamerListener.create(
+    provider,
+    new EventLogDBRouter(john.augur.events.parseLogs),
+    john.augur.addresses.Augur,
+    john.augur.events.getEventTopics,
   );
 
-  await db.sync(augur, mock.constants.chunkSize, mock.constants.blockstreamDelay, highestAvailableBlockNumber);
+  const dbController = await DB.createAndInitializeDB(
+    mock.constants.networkId,
+    0,
+    mock.constants.defaultStartSyncBlockNumber,
+    [ john.account, mary.account ],
+    john.augur.genericEventNames,
+    john.augur.userSpecificEvents,
+    mock.makeFactory(),
+    blockAndLogStreamerListener,
+  );
 
-  console.log(Object.keys(mock.getDatabases()));
-  console.log(db.dbName);
+  await dbController.sync(john.augur, mock.constants.chunkSize, 0);
 
-  const tokensTransferredDB = mock.getDatabases()[`db/${db.dbName}`];
-  const docs = await tokensTransferredDB.allDocs();
-  console.log(docs);
+  blockAndLogStreamerListener.listenForBlockRemoved(dbController.rollback.bind(dbController));
+  blockAndLogStreamerListener.startBlockStreamListener();
 
-  expect(docs).toBe(42);  // TODO
+  // Generate logs to be synced
+  const from = john.account;
+  const to = mary.account;
+  const fromBalance = new ethers.utils.BigNumber(10);
+  const value = new ethers.utils.BigNumber(4);
+
+  const reputationToken = john.augur.contracts.reputationToken as GenericAugurInterfaces.TestNetReputationToken<ethers.utils.BigNumber>;
+  await reputationToken.faucet(fromBalance);
+  await provider.provider.send("evm_mine", null);
+  console.log("ZZZ", "QQQ", await reputationToken.transfer(to, value, { sender: from }));
+
+  await provider.provider.send("evm_mine", null);
+
+  await dbController.sync(john.augur, mock.constants.chunkSize, 0);
+
+  console.log("ZZZ", "QQQ", "getDatabases", Object.keys(mock.getDatabases()));
+
+  const f = async (account: string) => {
+    console.log("ZZZ", "QQQ", "f", account);
+    const tokensTransferredDB = mock.getDatabases()[`db/4-TokensTransferred-${account}`];
+    const docs = await tokensTransferredDB.allDocs();
+
+    expect(docs.total_rows).toEqual(2);
+    //   expect(docs).toEqual({
+    //     offset: 0,
+    //     rows: [
+    //       { // The default row.
+    //         id: "_design/idx-c1ebf959ffec1e6bc1e3bfe00a3f8093",
+    //         key: "_design/idx-c1ebf959ffec1e6bc1e3bfe00a3f8093",
+    //         value: {
+    //           rev: "1-bbd6125c4844759bd4cb7bd5362df937",
+    //         },
+    //       },
+    //       { // The row we just added.
+    //         id: "TODO",
+    //         key: "TODO",
+    //         value: {
+    //           rev: "TODO",
+    //         },
+    //       },
+    //     ],
+    //     total_rows: 2,
+    //   });
+  };
+
+
+  const universeCreatedDB = mock.getDatabases()["db/4-UniverseCreated"];
+  console.log("ZZZ", "QQQ", "UniverseCreatedDocs", await universeCreatedDB.allDocs());
+
+  await f(john.account);
+  // await f(mary.account);
+
+
 }, 180000);
 
 // Constructor does some (private) processing, so verify that it works right.
 test("props", async () => {
-  const dbController = await mock.makeDB(augur, ACCOUNTS);
+  const dbController = await mock.makeDB(john.augur, ACCOUNTS);
 
   const eventName = "foo";
   const user = "artistotle";

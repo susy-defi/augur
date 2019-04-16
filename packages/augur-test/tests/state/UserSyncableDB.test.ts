@@ -13,6 +13,7 @@ import { EthersProvider } from "@augurproject/ethersjs-provider";
 import { DB } from "@augurproject/state/src/db/DB";
 import { BlockAndLogStreamerListener } from "@augurproject/state/src/db/BlockAndLogStreamerListener";
 import { EventLogDBRouter } from "@augurproject/state/src/db/EventLogDBRouter";
+import { stringTo32ByteHex } from "../../libs/Utils";
 
 const mock = makeDbMock();
 
@@ -73,6 +74,8 @@ test("sync", async () => {
   const to = mary.account;
   const fromBalance = new ethers.utils.BigNumber(10);
   const value = new ethers.utils.BigNumber(4);
+
+  await john.createReasonableMarket(john.augur.contracts.universe, [stringTo32ByteHex("a"), stringTo32ByteHex("b")]);
 
   const reputationToken = john.augur.contracts.reputationToken as GenericAugurInterfaces.TestNetReputationToken<ethers.utils.BigNumber>;
   await reputationToken.faucet(fromBalance);

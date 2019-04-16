@@ -17,8 +17,12 @@ export class Events {
         if (additionalTopics) {
             topics = topics.concat(additionalTopics);
         }
+        fromBlock = 0;
+        toBlock = 1000;
         const logs = await this.provider.getLogs({fromBlock, toBlock, topics, address: this.augurAddress});
-        console.log("ZZZ", "HHH", "Events.getLogs", eventName);
+        if (logs.length > 0 || eventName === "TokensTransferred") {
+          console.log("ZZZ", "HHH", "Events.getLogs", eventName, logs);
+        }
         return this.parseLogs(logs);
     }
 
@@ -27,9 +31,6 @@ export class Events {
     };
 
     public parseLogs(logs: Array<Log>): Array<ParsedLog> {
-        if (logs.length > 0) {
-          console.log("ZZZ", "HHH", "Events.parseLogs", logs);
-        }
         return logs.map((log) => {
             const logValues = this.provider.parseLogValues("Augur", log);
             return Object.assign(

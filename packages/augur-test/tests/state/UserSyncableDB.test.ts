@@ -78,16 +78,12 @@ test("sync", async () => {
   const reputationToken = john.augur.contracts.reputationToken as GenericAugurInterfaces.TestNetReputationToken<ethers.utils.BigNumber>;
   await reputationToken.faucet(fromBalance);
   await provider.provider.send("evm_mine", null);
-  console.log("ZZZ", "QQQ", await reputationToken.transfer(to, value, { sender: from }));
 
   await provider.provider.send("evm_mine", null);
 
   await dbController.sync(john.augur, mock.constants.chunkSize, 0);
 
-  console.log("ZZZ", "QQQ", "getDatabases", Object.keys(mock.getDatabases()));
-
   const f = async (account: string) => {
-    console.log("ZZZ", "QQQ", "f", account);
     const tokensTransferredDB = mock.getDatabases()[`db/4-TokensTransferred-${account}`];
     const docs = await tokensTransferredDB.allDocs();
 
@@ -113,10 +109,6 @@ test("sync", async () => {
     //     total_rows: 2,
     //   });
   };
-
-
-  const universeCreatedDB = mock.getDatabases()["db/4-UniverseCreated"];
-  console.log("ZZZ", "QQQ", "UniverseCreatedDocs", await universeCreatedDB.allDocs());
 
   await f(john.account);
   // await f(mary.account);

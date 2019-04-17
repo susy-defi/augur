@@ -101,13 +101,11 @@ export class EthersProvider extends ethers.providers.BaseProvider implements EPr
   }
 
   public async getLogs(filter: Filter): Promise<Array<Log>> {
-    console.log("ZZZ", "RRR", "EthersProvider.getLogs");
     return super.getLogs(filter);
   }
 
   public async perform(message: any, params: any): Promise<any> {
     return new Promise((resolve, reject) => {
-      console.log("ZZZ", "RRR", "EthersProvider.perform", message, params);
       this.performQueue.push({ message, params, resolve, reject });
     });
   }

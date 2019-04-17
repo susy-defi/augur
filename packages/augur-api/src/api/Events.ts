@@ -21,7 +21,6 @@ export class Events {
         toBlock = 1000;
         const logs = await this.provider.getLogs({fromBlock, toBlock, topics, address: this.augurAddress});
         if (logs.length > 0 || eventName === "TokensTransferred") {
-          console.log("ZZZ", "HHH", "Events.getLogs", eventName, logs);
         }
         return this.parseLogs(logs);
     }

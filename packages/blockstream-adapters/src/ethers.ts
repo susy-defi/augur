@@ -10,9 +10,7 @@ export class EthersProviderBlockStreamAdapter implements BlockAndLogStreamerDepe
 
   private onNewBlock(reconcileNewBlock:(block:Block) => Promise<void>) {
     return async (blockNumber:string) => {
-      console.log("ZZZ", "OOO", "EthersProviderBlockStreamAdapter.onNewBlock", blockNumber);
       const block = await this.getBlockByHashOrTag(blockNumber);
-      console.log("ZZZ", "OOO", "EthersProviderBlockStreamAdapter.onNewBlock", block);
       if(block) {
         // XXX reconcileNewBlock is BlockAndLogStreamListener.onNewBlock
         await reconcileNewBlock(block);
@@ -44,7 +42,6 @@ export class EthersProviderBlockStreamAdapter implements BlockAndLogStreamerDepe
   }
 
   getLogs = async (filterOptions: FilterOptions): Promise<ExtendedLog[]>  => {
-    console.log("ZZZ", "OOO", "getLogs");
     const logs = await this.provider.getLogs({
       ...filterOptions,
       topics: _.compact(filterOptions.topics),

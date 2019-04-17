@@ -46,12 +46,10 @@ test("sync", async () => {
   await john.approveCentralAuthority();
   await mary.approveCentralAuthority();
 
-  const blockAndLogStreamerListener = BlockAndLogStreamerListener.create(
-    provider,
-    new EventLogDBRouter(john.augur.events.parseLogs),
-    john.augur.addresses.Augur,
-    john.augur.events.getEventTopics,
-  );
+  const eventName = "TokensTransferred";
+  const sender = ACCOUNTS[0].publicKey;
+  const highestAvailableBlockNumber = 0;
+  const db = new UserSyncableDB<ethers.utils.BigNumber>(dbController, mock.constants.networkId, eventName, sender, 0, [0]);
 
   const dbController = await DB.createAndInitializeDB(
     mock.constants.networkId,
@@ -132,7 +130,7 @@ test("props", async () => {
 
   const eventName = "foo";
   const user = "artistotle";
-  const db = new UserSyncableDB<ethers.utils.BigNumber>(dbController, mock.constants.networkId, eventName, user, 2, 0);
+  const db = new UserSyncableDB<ethers.utils.BigNumber>(dbController, mock.constants.networkId, eventName, user, 2, [0]);
 
   // @ts-ignore - verify private property "additionalTopics"
   expect(db.additionalTopics).toEqual([

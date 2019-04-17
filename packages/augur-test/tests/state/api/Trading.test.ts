@@ -3,12 +3,12 @@ import {
   makeDbMock,
   compileAndDeployToGanache,
   ContractAPI,
-} from "../../libs";
-import {API} from "@augurproject/state/src/api/API";
-import {DB} from "@augurproject/state/src/db/DB";
-import {MarketTradingHistory} from "@augurproject/state/src/api/Trading";
+} from "../../../libs";
+import { API } from "@augurproject/state/src/api/API";
+import { DB } from "@augurproject/state/src/db/DB";
+import { MarketTradingHistory } from "@augurproject/state/src/api/Trading";
 import { ethers } from "ethers";
-import { stringTo32ByteHex } from "../../libs/Utils";
+import { stringTo32ByteHex } from "../../../libs/Utils";
 
 const mock = makeDbMock();
 
@@ -59,7 +59,7 @@ test("State API :: Trading :: getTradingHistory", async () => {
   );
 
   // Get trades by user
-  let trades: Array<MarketTradingHistory> = await api.trading.getTradingHistory({
+  let trades: Array<MarketTradingHistory> = await api.route("getTradingHistory", {
     account: mary.account,
   });
 
@@ -74,7 +74,7 @@ test("State API :: Trading :: getTradingHistory", async () => {
   await expect(trade.selfFilled).toEqual(false);
 
   // Get trades by market
-  trades = await api.trading.getTradingHistory({
+  trades = await api.route("getTradingHistory", {
     marketId: market.address,
   });
 

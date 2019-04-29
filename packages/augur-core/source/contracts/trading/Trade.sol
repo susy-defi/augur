@@ -45,6 +45,8 @@ contract Trade is Initializable, ReentrancyGuard {
     mapping (bytes32 => bool) public executed;
     mapping (bytes32 => bool) public cancelled;
 
+    bool sigh = false;
+
     function initialize(IAugur _augur) public beforeInitialized returns (bool) {
         endInitialization();
         augur = _augur;

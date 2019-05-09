@@ -41,7 +41,7 @@ RUN /usr/bin/virtualenv /augur/venv && \
     cd packages/augur-core && \
     python2 -m pip install --cache-dir=/augur/.pip -r requirements.txt
 
-RUN yarn workspace @augurproject/core build
+RUN yarn workspace @augurproject/core install && yarn workspace @augurproject/core build
 
 RUN apk add --no-cache \
     libstdc++
